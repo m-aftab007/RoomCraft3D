@@ -43,7 +43,7 @@ const Navbar = () => {
             Log In
           </a>
           <Link
-            to="/editor"
+            to="/start"
             className="rounded bg-amber-500 px-4 py-2 font-semibold text-slate-950 hover:bg-amber-400"
           >
             Get Started

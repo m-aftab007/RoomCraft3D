@@ -2,7 +2,7 @@
 // It only writes the chosen view to the editor store. The canvas area reads
 // the same value and decides what to show.
 
-import useEditorStore from '../../store/useEditorStore.js'
+import useEditorStore from '../../store/useEditorStore.jsx'
 
 const views = [
   { id: '2d', label: '2D View' },

@@ -22,7 +22,7 @@ const Hero = () => {
 
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
-              to="/editor"
+              to="/start"
               className="rounded bg-blue-500 px-5 py-2.5 text-sm font-semibold hover:bg-blue-400"
             >
               Start Designing Free

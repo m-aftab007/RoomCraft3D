@@ -36,6 +36,10 @@ const paths = {
   wall: 'M3 6h18v12H3zM3 12h18M9 6v6M15 12v6',
   door: 'M6 21V3h12v18M4 21h16M14 12v1',
   window: 'M4 4h16v16H4zM12 4v16M4 12h16',
+  select: 'M5 3l14 8-6 2-2 6z',
+  hand: 'M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3',
+  rotate: 'M20 12a8 8 0 11-3-6.2M20 4v5h-5',
+  trash: 'M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13',
 }
 
 const Icon = ({ name, className = 'h-5 w-5' }) => {

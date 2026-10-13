@@ -1,20 +1,23 @@
 // Left panel of the editor, the "Project Explorer".
 // It has two groups: The Structure holds the drawing tools and The Furniture
-// holds the furniture categories. The zoom buttons sit at the bottom.
+// holds the furniture catalogue. The zoom buttons sit at the bottom.
 
 import { useState } from 'react'
 import Icon from '../Icon.jsx'
 import SidebarGroup from './SidebarGroup.jsx'
+import FurnitureCategory from './FurnitureCategory.jsx'
 import ZoomControl from './ZoomControl.jsx'
-import useEditorStore from '../../store/useEditorStore.js'
+import useEditorStore from '../../store/useEditorStore.jsx'
+import furniture from '../../data/furniture.jsx'
 
+// the id is both the tool name in the store and the name of its icon
 const tools = [
+  { id: 'select', label: 'Select' },
+  { id: 'hand', label: 'Hand' },
   { id: 'wall', label: 'Wall' },
   { id: 'door', label: 'Door' },
   { id: 'window', label: 'Window' },
 ]
-
-const categories = ['Kitchen', 'Bathroom', 'Living Room', 'Bedroom', 'Desks', 'Accessories - Deco']
 
 const Sidebar = () => {
   // whether the whole panel is shown, only this component cares about it
@@ -62,8 +65,7 @@ const Sidebar = () => {
             <button
               key={item.id}
               type="button"
-              // clicking the tool that is already active puts it down again
-              onClick={() => setTool(tool === item.id ? 'select' : item.id)}
+              onClick={() => setTool(item.id)}
               className={
                 'flex w-full items-center gap-3 rounded px-3 py-2 text-sm ' +
                 (tool === item.id
@@ -78,15 +80,8 @@ const Sidebar = () => {
         </SidebarGroup>
 
         <SidebarGroup icon="sofa" title="The Furniture">
-          {categories.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className="flex w-full items-center justify-between rounded px-3 py-2 text-sm text-slate-400 hover:text-white"
-            >
-              {name}
-              <Icon name="chevronRight" className="h-3 w-3" />
-            </button>
+          {furniture.map((category) => (
+            <FurnitureCategory key={category.name} category={category} />
           ))}
         </SidebarGroup>
       </div>
