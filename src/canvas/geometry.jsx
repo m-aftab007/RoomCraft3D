@@ -8,8 +8,14 @@ export const PIXELS_PER_METRE = 80 // at 100% zoom
 export const GRID = 0.25 // one grid cell is 25 cm
 export const OPENING_WIDTH = { door: 0.9, window: 1.2 }
 
+// Decimal numbers are not stored exactly (0.1 + 0.2 is 0.30000000000000004),
+// so "does it fit" checks allow this tiny amount of slack.
+const SLACK = 1e-9
+
 // moves a value to the nearest grid line
 export const snap = (value) => Math.round(value / GRID) * GRID
+
+export const samePoint = (a, b) => a.x === b.x && a.y === b.y
 
 export const wallLength = (wall) =>
   Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y)
@@ -54,21 +60,81 @@ export const findWallAt = (point, walls, reach) => {
   return best
 }
 
+// Is there room on the wall for an opening of this width at this offset?
+// It has to stay between the wall's ends and must not touch another door or
+// window. ignoreId is the opening being moved, which may overlap itself.
+const openingFits = (wall, offset, width, openings, ignoreId) => {
+  const half = width / 2
+  if (offset - half < -SLACK || offset + half > wallLength(wall) + SLACK) return false
+
+  // two openings overlap when their middles are closer than half of each width added up
+  return openings.every(
+    (o) =>
+      o.wallId !== wall.id ||
+      o.id === ignoreId ||
+      Math.abs(o.offset - offset) >= (o.width + width) / 2 - SLACK
+  )
+}
+
+// the offset nearest to `along` that keeps the whole opening on the wall
+const clampOffset = (wall, along, width) =>
+  Math.min(Math.max(snap(along), width / 2), wallLength(wall) - width / 2)
+
 // Works out where a door or window would go for a mouse position.
-// Returns the opening (without an id) or null when there is no wall nearby
-// or the wall is too short for it.
-export const placeOpening = (type, point, walls) => {
+// Returns the opening (without an id) or null when there is no wall nearby,
+// the wall is too short, or another opening is in the way.
+export const placeOpening = (type, point, walls, openings) => {
   const hit = findWallAt(point, walls, 0.5)
   if (!hit) return null
 
   const width = OPENING_WIDTH[type]
-  const length = wallLength(hit.wall)
-  if (length < width) return null
+  const offset = clampOffset(hit.wall, hit.offset, width)
+  if (!openingFits(hit.wall, offset, width, openings)) return null
 
-  // keep the whole opening on the wall, half its width away from both ends
-  const offset = Math.min(Math.max(snap(hit.offset), width / 2), length - width / 2)
   // side is the side of the wall the mouse is on, the door swings open that way
   return { type, wallId: hit.wall.id, offset, width, side: hit.side }
+}
+
+// Where an existing door or window ends up when it is dragged to `point`.
+// It can only slide along its own wall. Returns the new offset, or null if
+// another opening is in the way, in which case it should stay where it is.
+export const slideOpening = (opening, point, walls, openings) => {
+  const wall = walls.find((w) => w.id === opening.wallId)
+  const offset = clampOffset(wall, toWallSpace(point, wall).along, opening.width)
+  return openingFits(wall, offset, opening.width, openings, opening.id) ? offset : null
+}
+
+// The wall corner within `reach` metres of a point, or null.
+export const findCornerAt = (point, walls, reach) => {
+  for (const wall of walls) {
+    for (const corner of [wall.start, wall.end]) {
+      if (Math.hypot(point.x - corner.x, point.y - corner.y) <= reach) return corner
+    }
+  }
+  return null
+}
+
+// May the corner at `from` be moved to `to`? Every wall that ends at `from`
+// moves with it, which is what keeps a closed room closed.
+export const canMoveCorner = (from, to, walls, openings) => {
+  // Landing on another corner is refused: the two would sit on the same
+  // point and move as one from then on, with no way to pull them apart.
+  // This also rules out a wall with no length.
+  if (walls.some((wall) => samePoint(wall.start, to) || samePoint(wall.end, to))) return false
+
+  return walls.every((wall) => {
+    const movesStart = samePoint(wall.start, from)
+    const movesEnd = samePoint(wall.end, from)
+    if (!movesStart && !movesEnd) return true
+
+    // the wall may not get shorter than its doors and windows need
+    const start = movesStart ? to : wall.start
+    const end = movesEnd ? to : wall.end
+    const length = Math.hypot(end.x - start.x, end.y - start.y)
+    return openings.every(
+      (o) => o.wallId !== wall.id || o.offset + o.width / 2 <= length + SLACK
+    )
+  })
 }
 
 // Is the point on a door or window? The area is larger than the opening

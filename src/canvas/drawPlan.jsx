@@ -170,8 +170,10 @@ const drawName = (ctx, piece, toScreen, scale) => {
 //   ghost       the door or window that a click would place
 //   ghostPiece  the furniture that a click would place
 //   snapPoint   the grid point the next wall corner would land on
+//   showCorners true to draw the grab rings on the wall corners
 const drawPlan = (ctx, size, scene) => {
-  const { walls, openings, furniture, zoom, selectedId, draft, ghost, ghostPiece, snapPoint } = scene
+  const { walls, openings, furniture, zoom, selectedId, draft, ghost, ghostPiece, snapPoint, showCorners } =
+    scene
   const center = scene.center || { x: 0, y: 0 }
   const scale = PIXELS_PER_METRE * zoom
   const px = 1 / scale
@@ -206,6 +208,21 @@ const drawPlan = (ctx, size, scene) => {
   }
   if (ghost) drawOpening(ctx, wallOf(ghost), ghost, PREVIEW, px)
   if (ghostPiece) drawFurniture(ctx, ghostPiece, PREVIEW, px)
+
+  // a small ring on every wall corner shows that it can be grabbed and moved
+  if (showCorners) {
+    ctx.fillStyle = BACKGROUND
+    ctx.strokeStyle = PREVIEW
+    ctx.lineWidth = 1.5 * px
+    for (const wall of walls) {
+      for (const corner of [wall.start, wall.end]) {
+        ctx.beginPath()
+        ctx.arc(corner.x, corner.y, 4 * px, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.stroke()
+      }
+    }
+  }
 
   if (snapPoint) {
     ctx.fillStyle = PREVIEW

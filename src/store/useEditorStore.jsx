@@ -24,8 +24,11 @@ const useEditorStore = create((set) => ({
   draftStart: null, // first corner of the wall being drawn, or null
   placingItem: null, // the catalogue item the furniture tool places, or null
   selectedId: null, // id of the selected wall, opening or furniture, or null
-  // the piece of furniture being dragged: { id, dx, dy, saved }
-  // dx and dy are how far from its centre it was grabbed
+  // What is being dragged with the select tool, or null. One of:
+  //   { kind: 'furniture', id, dx, dy, saved }  dx, dy: how far from its centre it was grabbed
+  //   { kind: 'opening', id, saved }            a door or window
+  //   { kind: 'corner', point, saved }          a wall corner, point is where it is now
+  // saved turns true once the room has been remembered for undo.
   dragging: null,
   notice: '', // short message in the status bar, for example "Link copied"
 

@@ -12,9 +12,16 @@ import { useDrop } from 'react-dnd'
 import useRoomStore from '../../store/useRoomStore.jsx'
 import useEditorStore from '../../store/useEditorStore.jsx'
 import drawPlan from '../../canvas/drawPlan.jsx'
-import { PIXELS_PER_METRE, snap, findItemAt, placeOpening } from '../../canvas/geometry.jsx'
-
-const samePoint = (a, b) => a.x === b.x && a.y === b.y
+import {
+  PIXELS_PER_METRE,
+  snap,
+  samePoint,
+  findItemAt,
+  findCornerAt,
+  placeOpening,
+  slideOpening,
+  canMoveCorner,
+} from '../../canvas/geometry.jsx'
 
 const cursors = { select: 'cursor-default', hand: 'cursor-grab' }
 
@@ -31,6 +38,8 @@ const PlanCanvas = () => {
   const addOpening = useRoomStore((state) => state.addOpening)
   const addFurniture = useRoomStore((state) => state.addFurniture)
   const moveFurniture = useRoomStore((state) => state.moveFurniture)
+  const moveOpening = useRoomStore((state) => state.moveOpening)
+  const moveCorner = useRoomStore((state) => state.moveCorner)
   const checkpoint = useRoomStore((state) => state.checkpoint)
 
   const tool = useEditorStore((state) => state.tool)
@@ -54,7 +63,8 @@ const PlanCanvas = () => {
   // previews of what the next click would add
   const snapPoint = tool === 'wall' ? { x: snap(cursor.x), y: snap(cursor.y) } : null
   const draft = snapPoint && draftStart ? { start: draftStart, end: snapPoint } : null
-  const ghost = tool === 'door' || tool === 'window' ? placeOpening(tool, cursor, walls) : null
+  const ghost =
+    tool === 'door' || tool === 'window' ? placeOpening(tool, cursor, walls, openings) : null
   const ghostPiece = placingItem ? { ...placingItem, x: cursor.x, y: cursor.y, rotation: 0 } : null
 
   // keep the canvas the same size as the space it is given
@@ -83,6 +93,7 @@ const PlanCanvas = () => {
       ghost,
       ghostPiece,
       snapPoint,
+      showCorners: tool === 'select',
     })
   })
 
@@ -126,15 +137,29 @@ const PlanCanvas = () => {
       // the next wall starts at this corner, so a room is drawn in one go
       setDraftStart(corner)
     } else if (tool === 'select') {
+      // Pressing on something also picks it up. What is being dragged is
+      // written to `dragging`, and handleMouseMove moves it.
+      // Wall corners are checked first. 10 / scale is ten pixels in metres,
+      // so a corner is as easy to hit when zoomed out as when zoomed in.
+      const corner = findCornerAt(point, walls, 10 / scale)
+      if (corner) {
+        setSelectedId(null)
+        setDragging({ kind: 'corner', point: corner, saved: false })
+        return
+      }
+
       const id = findItemAt(point, { walls, openings, furniture })
       setSelectedId(id)
-      // if it is furniture, pressing on it also picks it up
       const piece = furniture.find((p) => p.id === id)
       if (piece) {
-        setDragging({ id, dx: point.x - piece.x, dy: point.y - piece.y, saved: false })
+        // dx and dy remember where on the piece it was grabbed
+        const grab = { dx: point.x - piece.x, dy: point.y - piece.y }
+        setDragging({ kind: 'furniture', id, ...grab, saved: false })
+      } else if (openings.some((o) => o.id === id)) {
+        setDragging({ kind: 'opening', id, saved: false })
       }
     } else if (tool === 'door' || tool === 'window') {
-      const opening = placeOpening(tool, point, walls)
+      const opening = placeOpening(tool, point, walls, openings)
       if (opening) addOpening(opening)
     } else if (tool === 'furniture') {
       // the item stays in hand, so the same piece can be placed again and again
@@ -161,12 +186,30 @@ const PlanCanvas = () => {
     if (!dragging) return
 
     // on the first movement of a drag, remember the room for undo (once)
-    if (!dragging.saved) {
+    let drag = dragging
+    if (!drag.saved) {
       checkpoint()
-      setDragging({ ...dragging, saved: true })
+      drag = { ...drag, saved: true }
+      setDragging(drag)
     }
-    // taking dx and dy off keeps the piece under the mouse where it was grabbed
-    moveFurniture(dragging.id, point.x - dragging.dx, point.y - dragging.dy)
+
+    if (drag.kind === 'furniture') {
+      // taking dx and dy off keeps the piece under the mouse where it was grabbed
+      moveFurniture(drag.id, point.x - drag.dx, point.y - drag.dy)
+    } else if (drag.kind === 'opening') {
+      // a door or window slides along its wall, and stops at another opening
+      const opening = openings.find((o) => o.id === drag.id)
+      const offset = slideOpening(opening, point, walls, openings)
+      if (offset !== null) moveOpening(drag.id, offset)
+    } else {
+      // A corner jumps from grid point to grid point. The drag keeps the
+      // corner's current position, because that is how its walls are found.
+      const target = { x: snap(point.x), y: snap(point.y) }
+      if (!samePoint(target, drag.point) && canMoveCorner(drag.point, target, walls, openings)) {
+        moveCorner(drag.point, target)
+        setDragging({ ...drag, point: target })
+      }
+    }
   }
 
   const handleMouseUp = (e) => {

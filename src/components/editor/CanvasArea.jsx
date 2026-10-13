@@ -14,7 +14,7 @@ const Scene3D = lazy(() => import('./Scene3D.jsx'))
 
 // one line of help for the tool in use
 const hints = {
-  select: 'Click an item to select it. Drag furniture to move it.',
+  select: 'Click to select. Drag furniture, doors, windows or wall corners to move them.',
   hand: 'Drag to move around the plan. The mouse wheel and the middle button work with every tool.',
   wall: 'Click corner to corner, or drag. Right-click, Esc or double-click to finish.',
   door: 'Click on a wall to place a door. It opens to the side your mouse is on.',

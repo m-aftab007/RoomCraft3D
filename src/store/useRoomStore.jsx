@@ -19,6 +19,7 @@
 //              height is only used by the 3D view.
 
 import { create } from 'zustand'
+import { samePoint } from '../canvas/geometry.jsx'
 
 // the part of the state that undo and redo put back
 const snapshot = (state) => ({
@@ -95,10 +96,27 @@ const useRoomStore = create((set) => ({
       ],
     })),
 
-  // Dragging calls moveFurniture many times a second. If each call was
-  // remembered, one drag would fill the undo history. So moving does not
+  // Dragging calls the move actions below many times a second. If each call
+  // was remembered, one drag would fill the undo history. So moving does not
   // remember, and the canvas calls checkpoint() once when a drag begins.
   checkpoint: () => set((state) => remember(state)),
+
+  // Moves a wall corner. Every wall that starts or ends at `from` gets the
+  // new point, so walls that share a corner stay joined.
+  moveCorner: (from, to) =>
+    set((state) => ({
+      walls: state.walls.map((wall) => ({
+        ...wall,
+        start: samePoint(wall.start, from) ? to : wall.start,
+        end: samePoint(wall.end, from) ? to : wall.end,
+      })),
+    })),
+
+  // slides a door or window to a new place on its wall
+  moveOpening: (id, offset) =>
+    set((state) => ({
+      openings: state.openings.map((o) => (o.id === id ? { ...o, offset } : o)),
+    })),
 
   moveFurniture: (id, x, y) =>
     set((state) => ({
