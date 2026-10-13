@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Tailwind v4 reads its settings from CSS instead of a tailwind.config.js file.
+   Overriding --font-sans changes the default font of the whole app, so no
+   component has to set a font class. The names after Space Grotesk are
+   fallbacks used while the web font is still loading. */
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  /* navbar links glide to their section instead of jumping */
+  scroll-behavior: smooth;
+  /* the navbar is sticky and 3.5rem tall, so stop that far above a section
+     or its heading would end up hidden behind the bar */
+  scroll-padding-top: 3.5rem;
+}
+
+/* Faint blue grid behind the "Editor preview" box, like blueprint paper.
+   Two gradients each draw a 1px line, one horizontal and one vertical, and
+   background-size repeats them every 24px. This is plain CSS because the
+   same rule as a Tailwind class would be one very long unreadable line. */
+.blueprint-grid {
+  background-image:
+    linear-gradient(rgb(59 130 246 / 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(59 130 246 / 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
