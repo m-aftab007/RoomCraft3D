@@ -17,7 +17,8 @@ const useEditorStore = create((set) => ({
   // how the 3D view is looked at: 'orbit' turns around the room from
   // outside, 'walk' is a first-person view from inside
   cameraMode: 'orbit',
-  tool: 'select', // 'select', 'hand', 'wall', 'door', 'window' or 'furniture'
+  showMeasurements: true, // wall length labels in the 3D view
+  tool:'select', // 'select', 'hand', 'wall', 'door', 'window' or 'furniture'
   zoom: 1, // 1 means 100%
   // The point of the plan (in metres) shown in the middle of the canvas.
   // Moving the view only changes this point. The plan itself has no edges,
@@ -37,6 +38,7 @@ const useEditorStore = create((set) => ({
 
   setView: (view) => set({ view }),
   setCameraMode: (cameraMode) => set({ cameraMode }),
+  toggleMeasurements: () => set((state) => ({ showMeasurements: !state.showMeasurements })),
   // changing tool also drops a half drawn wall, the selection and the furniture in hand
   setTool: (tool) =>
     set({ tool, draftStart: null, placingItem: null, selectedId: null, dragging: null }),

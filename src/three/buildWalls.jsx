@@ -6,7 +6,7 @@
 import * as THREE from 'three'
 import { wallLength } from '../canvas/geometry.jsx'
 
-const WALL_HEIGHT = 2.7
+export const WALL_HEIGHT = 2.7
 const WALL_THICKNESS = 0.15
 const DOOR_HEIGHT = 2.1
 const WINDOW_BOTTOM = 0.9

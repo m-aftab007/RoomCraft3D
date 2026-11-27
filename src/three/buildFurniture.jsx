@@ -65,6 +65,10 @@ const buildFurniture = (piece, room, onChange) => {
   const holder = new THREE.Group()
   holder.position.set(piece.x, piece.lift || 0, piece.y)
   holder.rotation.y = (-piece.rotation * Math.PI) / 180
+  // lets a mouse click in 3D find out which piece it hit (selectControls),
+  // and lets the selection box know the piece's size (selectionBox)
+  holder.userData.pieceId = piece.id
+  holder.userData.piece = sized
 
   const shape = buildShape(sized)
   holder.add(shape)

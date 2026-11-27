@@ -1,4 +1,4 @@
-// Small bar at the bottom of the plan, shown while something is selected.
+// Small bar at the bottom of the plan or the 3D view, shown while something is selected.
 // It gives the selected item its actions as buttons, so deleting or rotating
 // does not depend on knowing the keyboard shortcuts.
 

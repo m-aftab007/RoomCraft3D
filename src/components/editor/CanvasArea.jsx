@@ -77,10 +77,12 @@ const CanvasArea = () => {
             <Hint>
               {cameraMode === 'walk'
                 ? 'Arrow keys: Up and Down to walk, Left and Right to turn.'
-                : 'Drag to look around. Scroll to zoom. Right-drag to move.'}
+                : 'Click furniture to select it, drag it to move. Drag elsewhere to look around.'}
             </Hint>
             <CameraToggle />
             <ColorPanel />
+            {/* the same Rotate and Delete bar as in 2D, for a piece picked in 3D */}
+            <SelectionBar />
           </Suspense>
         )}
       </main>
