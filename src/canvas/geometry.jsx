@@ -177,7 +177,25 @@ export const findItemAt = (point, { walls, openings, furniture }) => {
   return hit ? hit.wall.id : null
 }
 
-// The smallest rectangle that contains the whole room, used for the PNG export.
+// Would a person standing at `point` be inside a wall? Used by the walk mode
+// of the 3D view. body is how much space the person needs around them.
+// A doorway is the one place where being on a wall's line is allowed.
+export const isInsideWall = (point, walls, openings, body) =>
+  walls.some((wall) => {
+    const { along, across } = toWallSpace(point, wall)
+    const offset = Math.min(Math.max(along, 0), wallLength(wall))
+    if (Math.hypot(along - offset, across) > body) return false
+
+    // 0.1 keeps the person off the door frame
+    const inDoorway = openings.some(
+      (o) =>
+        o.type === 'door' && o.wallId === wall.id && Math.abs(along - o.offset) <= o.width / 2 - 0.1
+    )
+    return !inDoorway
+  })
+
+// The smallest rectangle that contains the whole room, used for the PNG
+// export and for aiming the 3D camera.
 export const getBounds = ({ walls, furniture }) => {
   const xs = []
   const ys = []

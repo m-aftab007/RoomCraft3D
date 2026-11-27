@@ -4,87 +4,31 @@
 // furniture and builds a picture of them, only as meshes instead of canvas
 // lines. It reads no store and knows nothing about React.
 //
-// The plan's x and y become x and z in 3D, because in Three.js the y axis
-// points up. Sizes stay in metres, so no numbers have to be converted.
+// The work is done by the files next to this one:
+//   buildWalls      walls with door and window gaps
+//   buildFurniture  one piece of furniture (model, simple shape or box)
+//   loadModel       loading and fitting GLTF models
+//   dispose         giving graphics memory back
 
 import * as THREE from 'three'
-import { wallLength, getBounds } from '../canvas/geometry.jsx'
+import { getBounds } from '../canvas/geometry.jsx'
+import buildWalls from './buildWalls.jsx'
+import buildFurniture from './buildFurniture.jsx'
+import dispose from './dispose.jsx'
 
-const WALL_HEIGHT = 2.7
-const WALL_THICKNESS = 0.15
-const DOOR_HEIGHT = 2.1
-const WINDOW_BOTTOM = 0.9
-const WINDOW_TOP = 2.1
-
-// A wall with a door or window in it is not one box. It is cut into solid
-// blocks around the openings: the wall before each opening, the piece above
-// a door, the pieces below and above a window, and the wall after the last
-// opening. Each block is { from, to, bottom, top }, with from and to
-// measured along the wall and bottom and top measured from the floor.
-const wallBlocks = (wall, openings) => {
-  const blocks = []
-  // the wall is made half a thickness longer at both ends to fill the corners
-  let from = -WALL_THICKNESS / 2
-
-  const onThisWall = openings
-    .filter((o) => o.wallId === wall.id)
-    .sort((a, b) => a.offset - b.offset)
-
-  for (const opening of onThisWall) {
-    const left = opening.offset - opening.width / 2
-    const right = opening.offset + opening.width / 2
-
-    blocks.push({ from, to: left, bottom: 0, top: WALL_HEIGHT })
-    if (opening.type === 'door') {
-      blocks.push({ from: left, to: right, bottom: DOOR_HEIGHT, top: WALL_HEIGHT })
-    } else {
-      blocks.push({ from: left, to: right, bottom: 0, top: WINDOW_BOTTOM })
-      blocks.push({ from: left, to: right, bottom: WINDOW_TOP, top: WALL_HEIGHT })
-    }
-    from = right
-  }
-
-  blocks.push({ from, to: wallLength(wall) + WALL_THICKNESS / 2, bottom: 0, top: WALL_HEIGHT })
-  // two openings placed over each other would give a block with no length
-  return blocks.filter((block) => block.to > block.from)
-}
-
-// Makes a box for one block and stands it on the wall's line.
-const boxOnWall = (wall, block, thickness, material) => {
-  const length = wallLength(wall)
-  const ux = (wall.end.x - wall.start.x) / length
-  const uy = (wall.end.y - wall.start.y) / length
-  const middle = (block.from + block.to) / 2
-
-  const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(block.to - block.from, block.top - block.bottom, thickness),
-    material
-  )
-  // a box is placed by its centre
-  mesh.position.set(
-    wall.start.x + ux * middle,
-    (block.bottom + block.top) / 2,
-    wall.start.y + uy * middle
-  )
-  // The box is made lying along x, then turned to the wall's direction. The
-  // minus is there because the plan's y axis points down the screen.
-  mesh.rotation.y = -Math.atan2(uy, ux)
-  return mesh
-}
-
-const buildRoom = ({ walls, openings, furniture }) => {
+// onChange is called when a furniture model has finished loading and has
+// been put in the room, so the caller knows the picture needs to be made again.
+const buildRoom = ({ walls, openings, furniture, wallColor, floorColor }, onChange) => {
   const room = new THREE.Group()
 
   // MeshStandardMaterial is Three.js's PBR material, it reacts to light the
-  // way real surfaces do
-  const wallMaterial = new THREE.MeshStandardMaterial({ color: '#f1f5f9' })
-  const floorMaterial = new THREE.MeshStandardMaterial({ color: '#d6d3d1' })
-  const furnitureMaterial = new THREE.MeshStandardMaterial({ color: '#b08968' })
-  const glassMaterial = new THREE.MeshStandardMaterial({
-    color: '#7dd3fc',
-    transparent: true,
-    opacity: 0.35,
-  })
+  // way real surfaces do. All walls share one material and the floor has its
+  // own. They are kept on the room, so a colour change only has to set the
+  // material's colour instead of building the whole room again.
+  const wallMaterial = new THREE.MeshStandardMaterial({ color: wallColor })
+  const floorMaterial = new THREE.MeshStandardMaterial({ color: floorColor })
+  room.userData.wallMaterial = wallMaterial
+  room.userData.floorMaterial = floorMaterial
 
   // the floor is a flat sheet a little larger than the room
   const box = getBounds({ walls, furniture })
@@ -97,54 +41,17 @@ const buildRoom = ({ walls, openings, furniture }) => {
   floor.receiveShadow = true
   room.add(floor)
 
-  for (const wall of walls) {
-    for (const block of wallBlocks(wall, openings)) {
-      const mesh = boxOnWall(wall, block, WALL_THICKNESS, wallMaterial)
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      room.add(mesh)
-    }
-  }
-
-  // a thin sheet of glass in every window
-  for (const opening of openings) {
-    if (opening.type !== 'window') continue
-    const wall = walls.find((w) => w.id === opening.wallId)
-    const pane = {
-      from: opening.offset - opening.width / 2,
-      to: opening.offset + opening.width / 2,
-      bottom: WINDOW_BOTTOM,
-      top: WINDOW_TOP,
-    }
-    room.add(boxOnWall(wall, pane, 0.02, glassMaterial))
-  }
-
-  // Furniture is a plain box of the right size for now. GLTF models will
-  // replace the boxes later, placed with the same position and rotation.
-  for (const piece of furniture) {
-    const height = piece.height || 0.8
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(piece.width, height, piece.depth),
-      furnitureMaterial
-    )
-    mesh.position.set(piece.x, height / 2, piece.y)
-    mesh.rotation.y = (-piece.rotation * Math.PI) / 180
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-    room.add(mesh)
-  }
+  room.add(buildWalls(walls, openings, wallMaterial))
+  for (const piece of furniture) room.add(buildFurniture(piece, room, onChange))
 
   return room
 }
 
-// Three.js keeps geometry and materials in graphics memory until told to
-// let go, so a room that is replaced has to be cleaned up by hand.
+// Called when a room is replaced or the 3D view is closed. The flag tells
+// models that are still loading not to add themselves to a room that is gone.
 export const disposeRoom = (room) => {
-  room.traverse((object) => {
-    if (!object.isMesh) return
-    object.geometry.dispose()
-    object.material.dispose()
-  })
+  room.userData.disposed = true
+  dispose(room)
 }
 
 export default buildRoom

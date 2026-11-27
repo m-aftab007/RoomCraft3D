@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import { useDrag } from 'react-dnd'
 import Icon from '../Icon.jsx'
+import FurniturePreview from './FurniturePreview.jsx'
 import useEditorStore from '../../store/useEditorStore.jsx'
 
 // One row of the list. useDrag makes react-dnd carry `item` along with the
@@ -15,6 +16,9 @@ const FurnitureItem = ({ item }) => {
   const startPlacing = useEditorStore((state) => state.startPlacing)
   // true for the item that is in hand right now, so it can be highlighted
   const active = useEditorStore((state) => state.placingItem?.id === item.id)
+  // where the row is on screen while the mouse is over it, null otherwise.
+  // Hovering only matters to this row, so it is local state, not the store.
+  const [hoverRow, setHoverRow] = useState(null)
 
   return (
     <div
@@ -22,6 +26,10 @@ const FurnitureItem = ({ item }) => {
         drag(node)
       }}
       onClick={() => startPlacing(item)}
+      onMouseEnter={(e) => setHoverRow(e.currentTarget.getBoundingClientRect())}
+      onMouseLeave={() => setHoverRow(null)}
+      // a drag starting hides the picture, so it does not follow onto the plan
+      onDragStart={() => setHoverRow(null)}
       className={
         'flex cursor-pointer items-center justify-between rounded px-3 py-1.5 text-sm ' +
         (active ? 'bg-blue-500/15 text-blue-300' : 'text-slate-300 hover:bg-slate-800')
@@ -31,6 +39,7 @@ const FurnitureItem = ({ item }) => {
       <span className="font-mono text-xs text-slate-500">
         {item.width} × {item.depth} m
       </span>
+      {hoverRow && <FurniturePreview item={item} row={hoverRow} />}
     </div>
   )
 }

@@ -14,9 +14,9 @@
 //              offset is the distance from the wall's start to the middle of
 //              the opening. Storing it this way keeps a door attached to its
 //              wall instead of floating at its own x and y.
-//   furniture: { id, itemId, name, width, depth, height, x, y, rotation }
+//   furniture: { id, itemId, name, width, depth, height, model, turn, lift, x, y, rotation }
 //              x and y are the centre of the piece, rotation is in degrees.
-//              height is only used by the 3D view.
+//              height, model, turn and lift are only used by the 3D view.
 
 import { create } from 'zustand'
 import { samePoint } from '../canvas/geometry.jsx'
@@ -33,9 +33,15 @@ const snapshot = (state) => ({
 // snapshot is only three references and costs almost nothing.
 const remember = (state) => ({ past: [...state.past, snapshot(state)], future: [] })
 
+// paint and floor colours a new design starts with
+export const DEFAULT_WALL_COLOR = '#e7e0d6'
+export const DEFAULT_FLOOR_COLOR = '#b98b5e'
+
 const useRoomStore = create((set) => ({
   projectName: 'Untitled Project',
   roomName: 'My Room',
+  wallColor: DEFAULT_WALL_COLOR,
+  floorColor: DEFAULT_FLOOR_COLOR,
   walls: [],
   openings: [],
   furniture: [],
@@ -46,9 +52,24 @@ const useRoomStore = create((set) => ({
 
   setProjectName: (name) => set({ projectName: name }),
 
+  // Colours are not part of undo. A colour picker sends a new colour for
+  // every small mouse movement, and undo would have to step through all of them.
+  setWallColor: (color) => set({ wallColor: color }),
+  setFloorColor: (color) => set({ floorColor: color }),
+
   // starts an empty room with the names typed on the start screen
   newProject: (projectName, roomName) =>
-    set({ projectName, roomName, walls: [], openings: [], furniture: [], past: [], future: [] }),
+    set({
+      projectName,
+      roomName,
+      wallColor: DEFAULT_WALL_COLOR,
+      floorColor: DEFAULT_FLOOR_COLOR,
+      walls: [],
+      openings: [],
+      furniture: [],
+      past: [],
+      future: [],
+    }),
 
   // Replaces the room with a saved one. The || fallbacks are there because
   // the data comes from outside (browser storage or a link) and may be incomplete.
@@ -56,6 +77,8 @@ const useRoomStore = create((set) => ({
     set({
       projectName: design.projectName || 'Untitled Project',
       roomName: design.roomName || 'My Room',
+      wallColor: design.wallColor || DEFAULT_WALL_COLOR,
+      floorColor: design.floorColor || DEFAULT_FLOOR_COLOR,
       walls: design.walls || [],
       openings: design.openings || [],
       furniture: design.furniture || [],
@@ -89,6 +112,9 @@ const useRoomStore = create((set) => ({
           width: item.width,
           depth: item.depth,
           height: item.height,
+          model: item.model,
+          turn: item.turn,
+          lift: item.lift,
           x,
           y,
           rotation: 0,

@@ -5,6 +5,8 @@ import { lazy, Suspense } from 'react'
 import Icon from '../Icon.jsx'
 import PlanCanvas from './PlanCanvas.jsx'
 import SelectionBar from './SelectionBar.jsx'
+import CameraToggle from './CameraToggle.jsx'
+import ColorPanel from './ColorPanel.jsx'
 import useEditorStore from '../../store/useEditorStore.jsx'
 import useRoomStore from '../../store/useRoomStore.jsx'
 
@@ -50,6 +52,7 @@ const Hint = ({ children }) => {
 const CanvasArea = () => {
   const view = useEditorStore((state) => state.view)
   const tool = useEditorStore((state) => state.tool)
+  const cameraMode = useEditorStore((state) => state.cameraMode)
   // the selector returns true or false, so this component only renders again
   // when the room goes from empty to not empty, not on every change
   const isEmpty = useRoomStore((state) => state.walls.length === 0 && state.furniture.length === 0)
@@ -71,7 +74,13 @@ const CanvasArea = () => {
           // Suspense shows nothing for the moment Three.js is being downloaded
           <Suspense fallback={null}>
             <Scene3D />
-            <Hint>Drag to look around. Scroll to zoom. Right-drag to move.</Hint>
+            <Hint>
+              {cameraMode === 'walk'
+                ? 'Arrow keys: Up and Down to walk, Left and Right to turn.'
+                : 'Drag to look around. Scroll to zoom. Right-drag to move.'}
+            </Hint>
+            <CameraToggle />
+            <ColorPanel />
           </Suspense>
         )}
       </main>

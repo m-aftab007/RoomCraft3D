@@ -15,8 +15,9 @@ const LINK_PREFIX = '#design='
 
 // only the design itself, not the undo history or the store's functions
 const getDesign = () => {
-  const { projectName, roomName, walls, openings, furniture } = useRoomStore.getState()
-  return { projectName, roomName, walls, openings, furniture }
+  const { projectName, roomName, wallColor, floorColor, walls, openings, furniture } =
+    useRoomStore.getState()
+  return { projectName, roomName, wallColor, floorColor, walls, openings, furniture }
 }
 
 // Returns false if the browser refused, which can happen in private windows.

@@ -14,6 +14,9 @@ const ZOOM_STEP = 0.25
 
 const useEditorStore = create((set) => ({
   view: '2d', // '2d' or '3d'
+  // how the 3D view is looked at: 'orbit' turns around the room from
+  // outside, 'walk' is a first-person view from inside
+  cameraMode: 'orbit',
   tool: 'select', // 'select', 'hand', 'wall', 'door', 'window' or 'furniture'
   zoom: 1, // 1 means 100%
   // The point of the plan (in metres) shown in the middle of the canvas.
@@ -33,6 +36,7 @@ const useEditorStore = create((set) => ({
   notice: '', // short message in the status bar, for example "Link copied"
 
   setView: (view) => set({ view }),
+  setCameraMode: (cameraMode) => set({ cameraMode }),
   // changing tool also drops a half drawn wall, the selection and the furniture in hand
   setTool: (tool) =>
     set({ tool, draftStart: null, placingItem: null, selectedId: null, dragging: null }),

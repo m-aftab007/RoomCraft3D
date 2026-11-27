@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // public/draco holds the Draco decoder copied from the three package, not our code
+  globalIgnores(['dist', 'public/draco']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -17,5 +18,10 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+  },
+  // the thumbnail script runs in Node, not in the browser
+  {
+    files: ['tools/**/*.js'],
+    languageOptions: { globals: globals.node },
   },
 ])
